@@ -1,9 +1,15 @@
 package samo92.mx.ambulanteando;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.UiThread;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -18,6 +24,8 @@ import com.mapbox.mapboxsdk.annotations.PolylineOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.location.LocationListener;
+import com.mapbox.mapboxsdk.location.LocationServices;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
@@ -31,6 +39,11 @@ import com.mapbox.services.directions.v5.MapboxDirections;
 import com.mapbox.services.directions.v5.models.DirectionsResponse;
 import com.mapbox.services.directions.v5.models.DirectionsRoute;
 
+import com.mapbox.services.android.geocoder.ui.GeocoderAutoCompleteView;
+import com.mapbox.services.commons.models.Position;
+import com.mapbox.services.geocoding.v5.GeocodingCriteria;
+import com.mapbox.services.geocoding.v5.models.GeocodingFeature;
+
 import java.util.List;
 
 import retrofit2.Call;
@@ -43,6 +56,10 @@ public class MainActivity extends AppCompatActivity
 
     private final static String TAG = "MainActivity";
     private MapboxMap map;
+    LocationServices locationServices;
+    FloatingActionButton fab_gps;
+
+    private static final int PERMISSIONS_LOCATION = 0;
 
     // Create a mapView
     private MapView mapView;
@@ -50,16 +67,21 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        MapboxAccountManager.start(this, getString(R.string.accessToken));
         setContentView(R.layout.activity_main);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        fab_gps = (FloatingActionButton) findViewById(R.id.fab);
+        fab_gps.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                /*Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();*/
+                if (map != null) {
+                    toggleGps(!map.isMyLocationEnabled());
+                }
             }
         });
 
@@ -83,7 +105,8 @@ public class MainActivity extends AppCompatActivity
 
                 map = mapboxMap;
 
-                mapboxMap.setMyLocationEnabled(true);   //Habilita la ubicacion del usuario y tracking
+                locationServices = LocationServices.getLocationServices(MainActivity.this);
+                //mapboxMap.setMyLocationEnabled(true);   //Habilita la ubicacion del usuario y tracking
 
                 CameraPosition cameraPosition = new CameraPosition.Builder()
                         .target(new LatLng(20.651832,-103.397773)) //Posicion de la camara
@@ -97,6 +120,32 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+        // Set up autocomplete widget
+        GeocoderAutoCompleteView autocomplete = (GeocoderAutoCompleteView) findViewById(R.id.query);
+        autocomplete.setAccessToken("pk.eyJ1Ijoic2FtbzkyIiwiYSI6ImNpZmVqN2NwaTZ6OXhza2tuZmtvNjl5MXoifQ.PO6t1lTVz_l7g_r-3B2--A");
+        autocomplete.setType(GeocodingCriteria.TYPE_POI);
+        autocomplete.setOnFeatureListener(new GeocoderAutoCompleteView.OnFeatureListener() {
+            @Override
+            public void OnFeatureClick(GeocodingFeature feature) {
+                Position position = feature.asPosition();
+                updateMap(position.getLatitude(), position.getLongitude());
+            }
+        });
+
+    }
+
+    private void updateMap(double latitude, double longitude) {
+        // Build marker
+        map.addMarker(new MarkerOptions()
+                .position(new LatLng(latitude, longitude))
+                .title("Geocoder result"));
+
+        // Animate camera to geocoder result location
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(new LatLng(latitude, longitude))
+                .zoom(15)
+                .build();
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), 5000, null);
     }
 
     @Override
@@ -186,5 +235,56 @@ public class MainActivity extends AppCompatActivity
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         mapView.onSaveInstanceState(outState);
+    }
+
+    @UiThread
+    public void toggleGps(boolean enableGps) {
+        if (enableGps) {
+            // Check if user has granted location permission
+            if (!locationServices.areLocationPermissionsGranted()) {
+                ActivityCompat.requestPermissions(this, new String[]{
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_LOCATION);
+            } else {
+                enableLocation(true);
+            }
+        } else {
+            enableLocation(false);
+        }
+    }
+
+    private void enableLocation(boolean enabled) {
+        if (enabled) {
+            locationServices.addLocationListener(new LocationListener() {
+                @Override
+                public void onLocationChanged(Location location) {
+                    if (location != null) {
+                        // Move the map camera to where the user location is
+                        map.setCameraPosition(new CameraPosition.Builder()
+                                .target(new LatLng(location))
+                                .zoom(16)
+                                .build());
+                    }
+                }
+            });
+            fab_gps.setImageResource(R.drawable.ic_menu_camera);
+        } else {
+            fab_gps.setImageResource(R.drawable.ic_menu_share);
+        }
+        // Enable or disable the location layer on the map
+        map.setMyLocationEnabled(enabled);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSIONS_LOCATION: {
+                if (grantResults.length > 0 &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    enableLocation(true);
+                }
+            }
+        }
     }
 }
