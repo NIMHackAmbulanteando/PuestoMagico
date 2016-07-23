@@ -1,9 +1,15 @@
 package samo92.mx.ambulanteando;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
 import android.support.design.widget.FloatingActionButton;
@@ -54,6 +60,8 @@ import retrofit2.Response;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    LocationManager locationManager;
+
     private final static String TAG = "MainActivity";
     private MapboxMap map;
     LocationServices locationServices;
@@ -69,6 +77,11 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         MapboxAccountManager.start(this, getString(R.string.accessToken));
         setContentView(R.layout.activity_main);
+
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+            showAlertDialog(MainActivity.this, "GPS", "El gps esta desactivado", true);
+        }
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -132,6 +145,26 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+    }
+
+    private void showAlertDialog(Context contex, String tittle, String message, boolean status) {
+        AlertDialog alertdialog = new AlertDialog.Builder(contex)
+                .setTitle(tittle)
+                .setMessage(message)
+                .setPositiveButton("si", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    }
+                })
+                .setNegativeButton("NO", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                }).create();
+        alertdialog.setCancelable(false);
+        alertdialog.show();
     }
 
     private void updateMap(double latitude, double longitude) {
