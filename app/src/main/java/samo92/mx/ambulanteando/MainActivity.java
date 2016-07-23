@@ -2,9 +2,8 @@ package samo92.mx.ambulanteando;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.view.View;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -12,10 +11,32 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
+import com.mapbox.mapboxsdk.annotations.PolylineOptions;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
+import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
+import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
+import com.mapbox.mapboxsdk.MapboxAccountManager;
+import com.mapbox.services.Constants;
+import com.mapbox.services.commons.ServicesException;
+import com.mapbox.services.commons.geojson.LineString;
+import com.mapbox.services.commons.models.Position;
+import com.mapbox.services.directions.v5.DirectionsCriteria;
+import com.mapbox.services.directions.v5.MapboxDirections;
+import com.mapbox.services.directions.v5.models.DirectionsResponse;
+import com.mapbox.services.directions.v5.models.DirectionsRoute;
+
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -60,7 +81,18 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onMapReady(MapboxMap mapboxMap) {
 
-                // Customize map with markers, polylines, etc.
+                map = mapboxMap;
+
+                mapboxMap.setMyLocationEnabled(true);   //Habilita la ubicacion del usuario y tracking
+
+                CameraPosition cameraPosition = new CameraPosition.Builder()
+                        .target(new LatLng(20.651832,-103.397773)) //Posicion de la camara
+                        .zoom(12)  // set the camera's zoom level
+                        .tilt(15)  // set the camera's tilt (tilt==Inclinacion)
+                        .build();
+
+                // Move the camera to "cameraPosition"
+                mapboxMap.moveCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
             }
         });
