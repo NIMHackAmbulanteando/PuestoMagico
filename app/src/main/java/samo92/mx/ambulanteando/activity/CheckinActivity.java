@@ -1,4 +1,4 @@
-package samo92.mx.ambulanteando;
+package samo92.mx.ambulanteando.activity;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -14,6 +14,8 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import samo92.mx.ambulanteando.R;
 
 /**
  * Created by samo92 on 23/07/16.

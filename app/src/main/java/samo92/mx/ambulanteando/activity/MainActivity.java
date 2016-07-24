@@ -1,4 +1,4 @@
-package samo92.mx.ambulanteando;
+package samo92.mx.ambulanteando.activity;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -13,10 +13,8 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
-import android.support.design.internal.NavigationMenu;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -50,21 +48,27 @@ import com.mapbox.services.directions.v5.models.DirectionsResponse;
 import com.mapbox.services.directions.v5.models.DirectionsRoute;
 
 import com.mapbox.services.android.geocoder.ui.GeocoderAutoCompleteView;
-import com.mapbox.services.commons.models.Position;
 import com.mapbox.services.geocoding.v5.GeocodingCriteria;
 import com.mapbox.services.geocoding.v5.models.GeocodingFeature;
 
 import java.util.List;
 
-import io.github.yavski.fabspeeddial.FabSpeedDial;
-import io.github.yavski.fabspeeddial.SimpleMenuListenerAdapter;
+import retrofit.RestAdapter;
+import retrofit.RetrofitError;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import samo92.mx.ambulanteando.R;
+import samo92.mx.ambulanteando.api.ApiClient;
+import samo92.mx.ambulanteando.api.ApiService;
+import samo92.mx.ambulanteando.constant.Constant;
+import samo92.mx.ambulanteando.model.Track;
 
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener{
+
+    private static ApiService apiService;
 
     LocationManager locationManager;
 
@@ -121,8 +125,34 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(View view) {
 
-                Intent ListSong = new Intent(getApplicationContext(), CheckinActivity.class);
+                /*Intent ListSong = new Intent(getApplicationContext(), CheckinActivity.class);
+                startActivity(ListSong);*/
+
+                RestAdapter restAdapter= new RestAdapter.Builder()
+                        .setEndpoint(Constant.URL_BASE)
+                        .setLogLevel(RestAdapter.LogLevel.BASIC).build();
+                apiService=restAdapter.create(ApiService.class);
+
+                double initial_spot_x = userLocation.getLatitude();
+                double initial_spot_y = userLocation.getLongitude();
+
+                apiService.sendTrack(new Track(initial_spot_x,initial_spot_y), new retrofit.Callback<Track>() {
+                    @Override
+                    public void success(Track track, retrofit.client.Response response) {
+                        System.out.println("se pudo");
+                    }
+
+                    @Override
+                    public void failure(RetrofitError error) {
+                        System.out.println(error.getMessage());
+                    }
+                });
+
+
+
+                Intent ListSong = new Intent(getApplicationContext(), UbicationNearby.class);
                 startActivity(ListSong);
+
 
             }
         });

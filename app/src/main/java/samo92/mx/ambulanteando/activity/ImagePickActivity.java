@@ -1,4 +1,4 @@
-package samo92.mx.ambulanteando;
+package samo92.mx.ambulanteando.activity;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -13,6 +13,8 @@ import android.widget.ImageView;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+
+import samo92.mx.ambulanteando.R;
 
 /**
  * Created by samo92 on 24/07/16.
