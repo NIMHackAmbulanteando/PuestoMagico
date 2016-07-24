@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -21,9 +22,11 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.annotations.PolylineOptions;
@@ -69,8 +72,13 @@ public class MainActivity extends AppCompatActivity
 
     private static final int PERMISSIONS_LOCATION = 0;
 
+    private DirectionsRoute currentRoute;
+
     // Create a mapView
     private MapView mapView;
+
+    private Position userLocation;
+    private Position userDestination;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,7 +150,31 @@ public class MainActivity extends AppCompatActivity
             public void OnFeatureClick(GeocodingFeature feature) {
                 Position position = feature.asPosition();
                 updateMap(position.getLatitude(), position.getLongitude());
+
+                if (map.getMyLocation() != null) {
+                    // Set the origin as user location only if we can get their location
+                    userLocation = Position.fromCoordinates(map.getMyLocation().getLongitude(), map.getMyLocation().getLatitude());
+                } else {
+                    return;
+                }
+
+                userDestination = feature.asPosition();
+
+                // Add origin and destination to the map
+                map.addMarker(new MarkerOptions()
+                        .position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())));
+                map.addMarker(new MarkerOptions()
+                        .position(new LatLng(userDestination.getLatitude(), userDestination.getLongitude())));
+
+                // Get route from API
+                try {
+                    getRoute(userLocation, userDestination);
+                } catch (ServicesException e) {
+                    e.printStackTrace();
+                }
+
             }
+
         });
 
     }
@@ -171,7 +203,7 @@ public class MainActivity extends AppCompatActivity
         // Build marker
         map.addMarker(new MarkerOptions()
                 .position(new LatLng(latitude, longitude))
-                .title("Geocoder result"));
+                .title(""));
 
         // Animate camera to geocoder result location
         CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -284,6 +316,60 @@ public class MainActivity extends AppCompatActivity
         } else {
             enableLocation(false);
         }
+    }
+
+    private void getRoute(Position origin, Position destination) throws ServicesException {
+
+        MapboxDirections client = new MapboxDirections.Builder()
+                .setOrigin(origin)
+                .setDestination(destination)
+                .setProfile(DirectionsCriteria.PROFILE_DRIVING)
+                .setAccessToken("pk.eyJ1Ijoic2FtbzkyIiwiYSI6ImNpcXprbDViYjAyZmRmdm1nY3duYjd2a3EifQ.SV0exsIhWUl74vGsMwTHIw")
+                .build();
+
+        client.enqueueCall(new Callback<DirectionsResponse>() {
+            @Override
+            public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
+                // You can get the generic HTTP info about the response
+                Log.d(TAG, "Response code: " + response.code());
+                if (response.body() == null) {
+                    Log.e(TAG, "No routes found, make sure you set the right user and access token.");
+                    return;
+                }
+
+                // Print some info about the route
+                currentRoute = response.body().getRoutes().get(0);
+                Log.d(TAG, "Distance: " + currentRoute.getDistance());
+                Toast.makeText(MainActivity.this, "Route is " + currentRoute.getDistance() + " meters long.", Toast.LENGTH_SHORT).show();
+
+                // Draw the route on the map
+                drawRoute(currentRoute);
+            }
+
+            @Override
+            public void onFailure(Call<DirectionsResponse> call, Throwable t) {
+                Log.e(TAG, "Error: " + t.getMessage());
+                Toast.makeText(MainActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void drawRoute(DirectionsRoute route) {
+        // Convert LineString coordinates into LatLng[]
+        LineString lineString = LineString.fromPolyline(route.getGeometry(), Constants.OSRM_PRECISION_V5);
+        List<Position> coordinates = lineString.getCoordinates();
+        LatLng[] points = new LatLng[coordinates.size()];
+        for (int i = 0; i < coordinates.size(); i++) {
+            points[i] = new LatLng(
+                    coordinates.get(i).getLatitude(),
+                    coordinates.get(i).getLongitude());
+        }
+
+        // Draw Points on MapView
+        map.addPolyline(new PolylineOptions()
+                .add(points)
+                .color(Color.parseColor("#009688"))
+                .width(5));
     }
 
     private void enableLocation(boolean enabled) {
