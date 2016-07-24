@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
+import android.support.design.internal.NavigationMenu;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
@@ -55,6 +56,8 @@ import com.mapbox.services.geocoding.v5.models.GeocodingFeature;
 
 import java.util.List;
 
+import io.github.yavski.fabspeeddial.FabSpeedDial;
+import io.github.yavski.fabspeeddial.SimpleMenuListenerAdapter;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -69,6 +72,7 @@ public class MainActivity extends AppCompatActivity
     private MapboxMap map;
     LocationServices locationServices;
     FloatingActionButton fab_gps;
+    FloatingActionButton fab_checkin;
 
     private static final int PERMISSIONS_LOCATION = 0;
 
@@ -86,6 +90,10 @@ public class MainActivity extends AppCompatActivity
         MapboxAccountManager.start(this, getString(R.string.accessToken));
         setContentView(R.layout.activity_main);
 
+        /*if (map != null) {
+            toggleGps(!map.isMyLocationEnabled());
+        }*/
+
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
             showAlertDialog(MainActivity.this, "GPS", "El gps esta desactivado", true);
@@ -94,7 +102,8 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        fab_gps = (FloatingActionButton) findViewById(R.id.fab);
+
+        fab_gps = (FloatingActionButton) findViewById(R.id.fab_gps);
         fab_gps.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -103,6 +112,18 @@ public class MainActivity extends AppCompatActivity
                 if (map != null) {
                     toggleGps(!map.isMyLocationEnabled());
                 }
+
+            }
+        });
+
+        fab_checkin = (FloatingActionButton) findViewById(R.id.fab_checkin);
+        fab_checkin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                Intent ListSong = new Intent(getApplicationContext(), CheckinActivity.class);
+                startActivity(ListSong);
+
             }
         });
 
@@ -125,6 +146,9 @@ public class MainActivity extends AppCompatActivity
             public void onMapReady(MapboxMap mapboxMap) {
 
                 map = mapboxMap;
+
+                mapboxMap.setMyLocationEnabled(true);
+
 
                 locationServices = LocationServices.getLocationServices(MainActivity.this);
                 //mapboxMap.setMyLocationEnabled(true);   //Habilita la ubicacion del usuario y tracking
