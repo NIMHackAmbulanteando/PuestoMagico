@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity
                 /*Intent ListSong = new Intent(getApplicationContext(), CheckinActivity.class);
                 startActivity(ListSong);*/
 
-                RestAdapter restAdapter= new RestAdapter.Builder()
+                /*RestAdapter restAdapter= new RestAdapter.Builder()
                         .setEndpoint(Constant.URL_BASE)
                         .setLogLevel(RestAdapter.LogLevel.BASIC).build();
                 apiService=restAdapter.create(ApiService.class);
@@ -146,11 +146,11 @@ public class MainActivity extends AppCompatActivity
                     public void failure(RetrofitError error) {
                         System.out.println(error.getMessage());
                     }
-                });
+                });*/
 
 
 
-                Intent ListSong = new Intent(getApplicationContext(), UbicationNearby.class);
+                Intent ListSong = new Intent(getApplicationContext(), CheckinActivity.class);
                 startActivity(ListSong);
 
 
